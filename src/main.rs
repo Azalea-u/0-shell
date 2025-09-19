@@ -1,4 +1,4 @@
 // Entry point of the program
 fn main() {
-    println!("Hello, world!");
+    shell0::run();
 }

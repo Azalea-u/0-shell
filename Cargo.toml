@@ -8,3 +8,4 @@ name = "0-shell"
 path = "src/main.rs"
 
 [dependencies]
+signal-hook = "0.3.18"
