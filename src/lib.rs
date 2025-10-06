@@ -23,13 +23,20 @@ pub fn run() {
         }
 
         let input = input.trim();
+        if input.is_empty() {
+            continue;
+        }
 
-        if input == "exit" && commands::exit::exit() {
-            break;
+        let parts: Vec<&str> = input.split_whitespace().collect();
+        let cmd = parts[0];
+        let args = &parts[1..];
+
+        match cmd {
+            "exit" if commands::exit::exit() => break,
+            "cd" => commands::cd::run(&mut shell, args),
+            _ => println!("{}: command not found", input),
         }
 
         shell.refresh();
-
-        println!("{}: command not found", input);
     }
 }
