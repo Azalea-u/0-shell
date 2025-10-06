@@ -1,35 +1,24 @@
-use std::io::{self, Write};
-use signal_hook::{consts::SIGINT, iterator::Signals};
-use crate::commands;
+//! Shell behavior
+use std::path::PathBuf;
+use std::env;
 
-pub fn run() {
-    // Handle Ctrl+C in background thread
-    let mut signals = Signals::new(&[SIGINT]).unwrap();
-    std::thread::spawn(move || {
-        for _ in signals.forever() {
-            println!(); 
-            print!("> ");
-            io::stdout().flush().unwrap();
+pub struct Shell {
+    pub cwd: PathBuf,
+}
+
+impl Shell {
+    pub fn new() -> Self {
+        let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("/"));
+        Self { cwd }
+    }
+
+    pub fn prompt(&self) -> String {
+        format!("{}$ ", self.cwd.display())
+    }
+
+    pub fn refresh(&mut self) {
+        if let Ok(current) = env::current_dir() {
+            self.cwd = current;
         }
-    });
-
-    // Main loop
-    loop {
-        print!("> ");
-        io::stdout().flush().unwrap();
-
-        let mut input = String::new();
-        if io::stdin().read_line(&mut input).unwrap() == 0 {
-            println!();
-            break;  // Ctrl+D
-        }
-
-        let input = input.trim();
-        
-        if input == "exit" && commands::exit::exit() {
-            break;
-        }
-        
-        println!("You typed: {}", input);
     }
 }
