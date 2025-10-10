@@ -8,7 +8,7 @@ pub fn parse_input(input: &str) -> Vec<String> {
 
     while let Some(c) = chars.next() {
         match c {
-            '"' => {
+            '"' | '\''=> {
                 in_quotes = !in_quotes;
             }
             '\\' => {
@@ -43,4 +43,33 @@ pub fn parse_input(input: &str) -> Vec<String> {
     }
 
     tokens
+}
+
+pub fn gate_closed(input: &str) -> bool {
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut escape = false;
+
+    for c in input.chars() {
+        if escape {
+            escape = false;
+            continue;
+        }
+
+        match c {
+            '\\' => {
+                escape = true;
+            }
+            '\'' if !in_double => {
+                in_single = !in_single;
+            }
+            '"' if !in_single => {
+                in_double = !in_double;
+            }
+            _ => {}
+        }
+    }
+
+    // All quotes must be closed
+    !in_single && !in_double
 }

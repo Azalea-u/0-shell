@@ -5,7 +5,7 @@ pub struct Shell {
     pub l_cwd: path::PathBuf,
     pub p_cwd: path::PathBuf,
     pub old_cwd: Option<path::PathBuf>,
-    pub gate_open: bool
+    pub gate_opened: bool
 }
 
 impl Shell {
@@ -16,14 +16,14 @@ impl Shell {
             l_cwd: logical,
             p_cwd: physicl,
             old_cwd: None,
-            gate_open: false
+            gate_opened: false
         }
     }
     pub fn promt(&self) -> String {
-        if self.gate_open{
+        if self.gate_opened{
             format!("> ")
         } else {
-            format!("{}: $ ", self.l_cwd.display())
+            format!("{}$ ", self.l_cwd.display())
         }
     }
 

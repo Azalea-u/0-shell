@@ -11,13 +11,26 @@ pub fn run() {
     let mut shell = Shell::new();
 
     loop {
-        print!("{}", shell.promt());
-        io::stdout().flush().unwrap();
-
         let mut input = String::new();
-        if io::stdin().read_line(&mut input).unwrap() == 0 {
-            println!();
-            break; // Ctrl+D
+
+        loop {
+            print!("{}", shell.promt());
+            io::stdout().flush().unwrap();
+
+            let mut line = String::new();
+            if io::stdin().read_line(&mut line).unwrap() == 0 {
+                println!();
+                return; // Ctrl+D
+            }
+
+            input.push_str(&line);
+
+            if parser::gate_closed(&input) {
+                shell.gate_opened = false;
+                break;
+            } else {
+                shell.gate_opened = true;
+            }
         }
 
         let input = input.trim();
