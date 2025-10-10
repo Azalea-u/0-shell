@@ -48,6 +48,8 @@ pub fn run() {
 
         match cmd {
             "exit" => break,
+            "cd" => commands::cd::run(&mut shell, args),
+            "pwd" => commands::pwd::run(&mut shell, args),
             _ => println!("{}: command not found", cmd),
         }
 

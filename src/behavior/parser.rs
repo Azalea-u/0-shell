@@ -4,34 +4,47 @@ pub fn parse_input(input: &str) -> Vec<String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
     let mut chars = input.chars().peekable();
-    let mut in_quotes = false;
+
+    let mut in_single_quotes = false;
+    let mut in_double_quotes = false;
 
     while let Some(c) = chars.next() {
         match c {
-            '"' | '\''=> {
-                in_quotes = !in_quotes;
+            '\'' if !in_double_quotes => {
+                in_single_quotes = !in_single_quotes;
+            }
+            '"' if !in_single_quotes => {
+                in_double_quotes = !in_double_quotes;
             }
             '\\' => {
-                if let Some(next) = chars.next() {
-                    if in_quotes {
-                        match next {
-                            '"' | '$' | '`' | '\\' | '\n' => current.push(next),
-                            _ => {
-                                current.push('\\');
-                                current.push(next);
-                            }
+                if let Some(&next) = chars.peek() {
+                    match next {
+                        _ if in_single_quotes => {
+                            current.push('\\');
+                            current.push(next);
+                            chars.next();
                         }
-                    } else {
-                        current.push(next);
+                        '"' | '\\' | '$' | '`' | '\n' if in_double_quotes => {
+                            current.push(next);
+                            chars.next();
+                        }
+                        _ if !in_single_quotes && !in_double_quotes => {
+                            current.push(next);
+                            chars.next();
+                        }
+                        _ => {
+                            current.push('\\');
+                        }
                     }
                 } else {
                     current.push('\\');
                 }
             }
-            ' ' | '\t' if !in_quotes => {
+
+            ' ' | '\t' if !in_single_quotes && !in_double_quotes => {
                 if !current.is_empty() {
-                    tokens.push(current.clone());
-                    current.clear();
+                    tokens.push(current);
+                    current = String::new();
                 }
             }
             _ => current.push(c),
