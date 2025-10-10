@@ -1,19 +1,17 @@
 // Library root: re-exports and glue code
-
 use std::io::{self, Write};
 
-pub mod commands;
 pub mod behavior;
-pub mod utils;
-pub mod error;
+pub mod commands;
 
 use behavior::shell::Shell;
+use behavior::parser;
 
 pub fn run() {
     let mut shell = Shell::new();
 
     loop {
-        print!("{}", shell.prompt());
+        print!("{}", shell.promt());
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -27,14 +25,17 @@ pub fn run() {
             continue;
         }
 
-        let parts: Vec<&str> = input.split_whitespace().collect();
-        let cmd = parts[0];
-        let args = &parts[1..];
+        let tokens = parser::parse_input(input);
+        if tokens.is_empty() {
+            continue;
+        }
+
+        let cmd = tokens[0].as_str();
+        let args: Vec<&str> = tokens[1..].iter().map(|s| s.as_str()).collect();
 
         match cmd {
-            "exit" if commands::exit::exit() => break,
-            "cd" => commands::cd::run(&mut shell, args),
-            _ => println!("{}: command not found", input),
+            "exit" => break,
+            _ => println!("{}: command not found", cmd),
         }
 
         shell.refresh();

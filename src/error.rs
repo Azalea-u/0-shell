@@ -1,1 +1,0 @@
-// Defines ShellError and ShellResult
