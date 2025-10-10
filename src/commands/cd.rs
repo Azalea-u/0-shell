@@ -17,7 +17,7 @@ pub fn run(shell: &mut Shell, args: Vec<&str>) {
         if let Some(old) = &shell.old_cwd {
             old.display().to_string()
         } else {
-            eprintln!("cd: no previous directory");
+            println!("{}", shell.l_cwd.display());
             return;
         }
     } else {
