@@ -50,6 +50,7 @@ pub fn run() {
             "exit" => break,
             "cd" => commands::cd::run(&mut shell, args),
             "pwd" => commands::pwd::run(&mut shell, args),
+            "echo" => commands::echo::run(args),
             _ => println!("{}: command not found", cmd),
         }
 
