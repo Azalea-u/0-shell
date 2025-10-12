@@ -1,3 +1,4 @@
+use std::io;
 //Shell basic struct
 use std::path;
 use std::env;
@@ -34,10 +35,14 @@ impl Shell {
         }
     }
 
-    pub fn update_dir(&mut self, new_dir: path::PathBuf) {
+    pub fn update_dir(&mut self, new_dir: path::PathBuf) -> io::Result<()> {
         self.old_cwd = Some(self.l_cwd.clone());
+        
+        env::set_current_dir(&new_dir)?;
+        
         self.l_cwd = new_dir.clone();
         self.p_cwd = new_dir.canonicalize().unwrap_or(new_dir.clone());
-        let _ = env::set_current_dir(&new_dir);
+
+        Ok(())
     }
 }

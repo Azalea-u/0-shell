@@ -2,6 +2,7 @@
 use crate::behavior::shell::Shell;
 use std::path::PathBuf;
 use std::env;
+use std::io;
 
 pub fn run(shell: &mut Shell, args: Vec<&str>) {
     // Determine target path
@@ -24,18 +25,22 @@ pub fn run(shell: &mut Shell, args: Vec<&str>) {
         args[0].to_string()
     };
 
-    let mut new_path = PathBuf::from(&target);
-    if !new_path.is_absolute() && args.get(0) != Some(&"-") {
-        new_path = shell.l_cwd.join(new_path);
+    let new_path = PathBuf::from(&target);
+    match shell.update_dir(new_path) {
+        Ok(()) => {},
+        Err(e) => {
+            match e.kind() {
+                io::ErrorKind::PermissionDenied => {
+                    eprintln!("cd: permission denied for {}", target);
+                }
+                io::ErrorKind::NotFound => {
+                    eprintln!("cd: no such directory {}", target);
+                }
+                _ => {
+                    eprintln!("cd: {}: {}", target, e);
+                }
+            }
+        }
     }
 
-    if new_path.is_dir() {
-        if let Ok(abs_path) = new_path.canonicalize() {
-            shell.update_dir(abs_path);
-        } else {
-            eprintln!("cd: invalid path: {}", target);
-        }
-    } else {
-        eprintln!("cd: no such directory: {}", target);
-    }
 }
