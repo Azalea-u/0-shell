@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::env;
 use std::io;
 
-pub fn run(shell: &mut Shell, args: Vec<&str>) {
+pub fn run(shell: &mut Shell, args: Vec<&str>, _redirects: &[crate::behavior::tokenizer::Redirect]) {
     // Determine target path
     let target = if args.is_empty() || args[0] == "~" {
         // cd or cd ~ → home directory

@@ -1,11 +1,13 @@
-// Library root: re-exports and glue code
 use std::io::{self, Write};
 
 pub mod behavior;
 pub mod commands;
+pub mod core;
 
 use behavior::shell::Shell;
 use behavior::parser;
+use behavior::tokenizer;
+use core::command;
 
 pub fn run() {
     let mut shell = Shell::new();
@@ -38,20 +40,20 @@ pub fn run() {
             continue;
         }
 
+        // Step 1: Basic parsing (quotes, escapes)
         let tokens = parser::parse_input(input);
         if tokens.is_empty() {
             continue;
         }
 
-        let cmd = tokens[0].as_str();
-        let args: Vec<&str> = tokens[1..].iter().map(|s| s.as_str()).collect();
-
-        match cmd {
-            "exit" => break,
-            "cd" => commands::cd::run(&mut shell, args),
-            "pwd" => commands::pwd::run(&mut shell, args),
-            "echo" => commands::echo::run(args),
-            _ => println!("{}: command not found", cmd),
+        // Step 2: Parse operators and redirections
+        match tokenizer::tokens_parser(tokens) {
+            Ok(command) => {
+                command::execute(&mut shell, command);
+            }
+            Err(e) => {
+                eprintln!("Parse error: {}", e);
+            }
         }
 
         shell.refresh();
