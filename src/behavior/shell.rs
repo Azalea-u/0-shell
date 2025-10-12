@@ -36,10 +36,9 @@ impl Shell {
     }
 
     pub fn update_dir(&mut self, new_dir: path::PathBuf) -> io::Result<()> {
-        self.old_cwd = Some(self.l_cwd.clone());
-        
         env::set_current_dir(&new_dir)?;
-        
+
+        self.old_cwd = Some(self.l_cwd.clone());
         self.l_cwd = new_dir.clone();
         self.p_cwd = new_dir.canonicalize().unwrap_or(new_dir.clone());
 
