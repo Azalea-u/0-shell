@@ -1,6 +1,6 @@
 // Built-in: ls (list directory contents)
 
-use std::fs::{read_dir, DirEntry};
+use std::fs::{read_dir, DirEntry, Metadata};
 use std::os::unix::fs::PermissionsExt;
 
 use crate::behavior::shell::Shell;
@@ -96,7 +96,7 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                         if options.long {
                             if let Ok(metadata) = entry.metadata() {
                                 let size = metadata.len();
-                                let file_type = if metadata.is_dir() { "d" } else { "-" };
+                                let file_type = file_type(&metadata);
                                 let mode = metadata.permissions().mode();
                                 
                                 writeln!(output, "{}{} {:>8} {}", file_type,display_perm(mode), size, display_name).unwrap();
@@ -144,4 +144,18 @@ pub fn classify_it(entry: &DirEntry) -> String {
         s.push(if mode & flag != 0 { c } else { '-' });
     }
     s
+}
+
+fn file_type(metadata: &Metadata) -> char {
+    use std::os::unix::fs::FileTypeExt;
+    let file_type = metadata.file_type();
+    
+    if file_type.is_dir() { 'd' }
+    else if file_type.is_file() { '-' }
+    else if file_type.is_symlink() { 'l' }
+    else if file_type.is_char_device() { 'c' }
+    else if file_type.is_block_device() { 'b' }
+    else if file_type.is_fifo() { 'p' }
+    else if file_type.is_socket() { 's' }
+    else { '?' }
 }
