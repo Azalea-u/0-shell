@@ -1,6 +1,7 @@
 // Built-in: ls (list directory contents)
 
 use std::fs::{read_dir, DirEntry};
+use std::os::unix::fs::PermissionsExt;
 
 use crate::behavior::shell::Shell;
 use crate::behavior::tokenizer::Redirect;
@@ -81,27 +82,26 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                     files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
                     
                     for entry in files {
-                        let file_name = entry.file_name();
-                        let file_name_str = file_name.to_string_lossy();
-                        
-                        if !options.all && file_name_str.starts_with('.') {
+                        let file_name = entry.file_name();                        
+                        if !options.all && file_name.to_string_lossy().starts_with('.') {
                             continue;
                         }
 
                         let display_name = if options.classify {
                             classify_it(&entry)
                         } else {
-                            file_name_str.to_string()
+                            file_name.to_string_lossy().to_string()
                         };
 
                         if options.long {
                             if let Ok(metadata) = entry.metadata() {
                                 let size = metadata.len();
                                 let file_type = if metadata.is_dir() { "d" } else { "-" };
+                                let mode = metadata.permissions().mode();
                                 
-                                writeln!(output, "{}{:>8} {}", file_type, size, display_name).unwrap();
+                                writeln!(output, "{}{} {:>8} {}", file_type,display_perm(mode), size, display_name).unwrap();
                             } else {
-                                writeln!(output, "?        ? {}", display_name).unwrap();
+                                writeln!(output, "?---------        ? {}", display_name).unwrap();
                             }
                         } else {
                             write!(output, "{}  ", display_name).unwrap();
@@ -133,3 +133,15 @@ pub fn classify_it(entry: &DirEntry) -> String {
     }
 }
  
+ fn display_perm(mode: u32) -> String {
+    let mut s = String::new();
+    let flags = [
+        (0o400, 'r'), (0o200, 'w'), (0o100, 'x'),
+        (0o040, 'r'), (0o020, 'w'), (0o010, 'x'),
+        (0o004, 'r'), (0o002, 'w'), (0o001, 'x'),
+    ];
+    for (flag, c) in flags {
+        s.push(if mode & flag != 0 { c } else { '-' });
+    }
+    s
+}
