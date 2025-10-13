@@ -1,7 +1,7 @@
 // Built-in: ls (list directory contents)
 
 use std::fs::{read_dir, DirEntry, Metadata};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{FileTypeExt, PermissionsExt};
 
 use crate::behavior::shell::Shell;
 use crate::behavior::tokenizer::Redirect;
@@ -29,37 +29,17 @@ pub fn run(_shell: &Shell, args: Vec<&str>, redirects: &[Redirect]) {
     let mut options = Options::default();
     
     for arg in args {
-        match arg {
-            "-a" => options.all = true,
-            "-l" => options.long = true,
-            "-F" => options.classify = true,
-
-            "-la" | "-al" => {
-                options.all = true;
-                options.long = true;
-            }
-            "-lF" | "-Fl" => {
-                options.long = true;
-                options.classify = true;
-            }
-            "-aF" | "-Fa" => {
-                options.all = true;
-                options.classify = true;
-            }
-
-            "-laF" | "-lFa" | "-alF" | "-aFl" | "-Fla" | "-Fal" => {
-                options.all = true;
-                options.long = true;
-                options.classify = true;
-            }
-
-            _ => {
-                if arg.starts_with('-') {
-                    eprintln!("ls: invalid option {}", arg);
-                } else {
-                    paths.push(arg.to_string());
+        if arg.starts_with('-') {
+            for c in arg.chars().skip(1) {
+                match c {
+                    'a' => options.all = true,
+                    'l' => options.long = true,
+                    'F' => options.classify = true,
+                    _ => eprintln!("ls: invalid option -{}", c),
                 }
             }
+        } else {
+            paths.push(arg.to_string());
         }
     }
 
@@ -67,8 +47,16 @@ pub fn run(_shell: &Shell, args: Vec<&str>, redirects: &[Redirect]) {
         paths.push(".".to_string());
     }
 
-    for path in paths {
-        list_directory(&path, &options, redirects);
+    let show_headers = paths.len() > 1;
+    for (i, path) in paths.iter().enumerate() {
+        if show_headers {
+            if i > 0 {
+                println!(); // blank line between outputs
+            }
+            println!("{}:", path);
+        }
+
+        list_directory(path, &options, redirects);
     }
 }
 
@@ -125,7 +113,11 @@ pub fn classify_it(entry: &DirEntry) -> String {
     if let Ok(metadata) = entry.metadata() {
         if metadata.is_dir() {
             format!("{}/", entry.file_name().to_string_lossy().to_string())
-        } else {
+        } else if metadata.permissions().mode() & 0o111 != 0{
+            format!("{}*", entry.file_name().to_string_lossy().to_string())
+        } else if metadata.is_symlink(){
+            format!("{}@", entry.file_name().to_string_lossy().to_string())
+        }else {
             entry.file_name().to_string_lossy().to_string()
         }
     }else {
@@ -147,7 +139,6 @@ pub fn classify_it(entry: &DirEntry) -> String {
 }
 
 fn file_type(metadata: &Metadata) -> char {
-    use std::os::unix::fs::FileTypeExt;
     let file_type = metadata.file_type();
     
     if file_type.is_dir() { 'd' }
