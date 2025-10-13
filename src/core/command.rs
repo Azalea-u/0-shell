@@ -16,6 +16,9 @@ pub fn execute(shell: &mut Shell, cmd: Command) {
         "echo" => {
             echo::run(args, &cmd.redirects);
         }
+        "ls" => {
+            ls::run(shell, args, &cmd.redirects);
+        }
         _ => println!("{}: command not found", cmd.name),
     }
 }
