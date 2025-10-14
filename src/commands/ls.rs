@@ -85,6 +85,8 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                         if options.long {
                             if let Ok(metadata) = entry.metadata() {
                                 let file_type = file_type(&metadata);
+                                let n_link = metadata.nlink();
+                                let (user, group) = get_user_group(&metadata);
                                 let mode = metadata.permissions().mode();
                                 let size = if file_type == 'c' || file_type == 'b' {
                                     get_device_numbers(&metadata)
@@ -92,7 +94,7 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                                    format_size(metadata.len())
                                 };
                                 
-                                writeln!(output, "{}{} {} {}", file_type,display_perm(mode), size, display_name).unwrap();
+                                writeln!(output, "{}{} {:>2} {:>3} {:>3} {} {}", file_type,display_perm(mode), n_link, user, group, size, display_name).unwrap();
                             } else {
                                 writeln!(output, "?---------        ? {}", display_name).unwrap();
                             }
@@ -173,10 +175,25 @@ fn format_size(size: u64) -> String {
     }
 
     if unit_index == 0 {
-        format!("{:>8}", size as u64)
+        format!("{:>7}{}", size as u64, UNITS[unit_index])
     } else if size < 10.0 {
         format!("{:>7.1}{}", size, UNITS[unit_index])
     } else {
         format!("{:>7.0}{}", size, UNITS[unit_index])
     }
+}
+
+fn get_user_group(metadata: &Metadata) -> (String,String) {
+    let uid = metadata.uid();
+    let gid = metadata.gid();
+
+    let user = users::get_user_by_uid(uid)
+        .map(|u| u.name().to_string_lossy().to_string())
+        .unwrap_or(uid.to_string());
+
+    let group = users::get_group_by_gid(gid)
+        .map(|g| g.name().to_string_lossy().to_string())
+        .unwrap_or(gid.to_string());
+
+    (user, group)
 }
