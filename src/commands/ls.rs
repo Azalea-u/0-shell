@@ -3,6 +3,8 @@
 use std::fs::{read_dir, DirEntry, Metadata};
 use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 
+use chrono::{DateTime, Duration, Local};
+
 use crate::behavior::shell::Shell;
 use crate::behavior::tokenizer::Redirect;
 use crate::core::redirect;
@@ -87,6 +89,7 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                                 let file_type = file_type(&metadata);
                                 let n_link = metadata.nlink();
                                 let (user, group) = get_user_group(&metadata);
+                                let last_updated = get_modified_time(&metadata);
                                 let mode = metadata.permissions().mode();
                                 let size = if file_type == 'c' || file_type == 'b' {
                                     get_device_numbers(&metadata)
@@ -94,7 +97,7 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
                                    format_size(metadata.len())
                                 };
                                 
-                                writeln!(output, "{}{} {:>2} {:>3} {:>3} {} {}", file_type,display_perm(mode), n_link, user, group, size, display_name).unwrap();
+                                writeln!(output, "{}{} {:>2} {:>3} {:>3} {} {} {}", file_type,display_perm(mode), n_link, user, group, size, last_updated, display_name).unwrap();
                             } else {
                                 writeln!(output, "?---------        ? {}", display_name).unwrap();
                             }
@@ -196,4 +199,23 @@ fn get_user_group(metadata: &Metadata) -> (String,String) {
         .unwrap_or(gid.to_string());
 
     (user, group)
+}
+
+fn get_modified_time(metadata: &Metadata) -> String {
+    match metadata.modified() {
+        Ok(modified) => {
+            let d: DateTime<Local> = DateTime::from(modified);
+            let now = Local::now();
+
+            let diff = now.signed_duration_since(d);
+            if diff.num_seconds() < 0 {
+                d.format("%b %e %H:%M").to_string()
+            } else if diff < Duration::days(180) {
+                d.format("%b %e %H:%M").to_string()
+            } else {
+                d.format("%b %e  %Y").to_string()
+            }
+        }
+        Err(_) => "??? ?? ????".to_string(),
+    }
 }
