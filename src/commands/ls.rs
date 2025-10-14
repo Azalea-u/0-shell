@@ -1,7 +1,7 @@
 // Built-in: ls (list directory contents)
 
 use std::fs::{read_dir, DirEntry, Metadata};
-use std::os::unix::fs::{FileTypeExt, PermissionsExt};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 
 use crate::behavior::shell::Shell;
 use crate::behavior::tokenizer::Redirect;
@@ -35,7 +35,8 @@ pub fn run(_shell: &Shell, args: Vec<&str>, redirects: &[Redirect]) {
                     'a' => options.all = true,
                     'l' => options.long = true,
                     'F' => options.classify = true,
-                    _ => eprintln!("ls: invalid option -{}", c),
+                    _ => {eprintln!("ls: invalid option -{}", c);
+                        return;},
                 }
             }
         } else {
@@ -83,11 +84,15 @@ pub fn list_directory(path: &str, options: &Options, redirects: &[Redirect]) {
 
                         if options.long {
                             if let Ok(metadata) = entry.metadata() {
-                                let size = metadata.len();
                                 let file_type = file_type(&metadata);
                                 let mode = metadata.permissions().mode();
+                                let size = if file_type == 'c' || file_type == 'b' {
+                                    get_device_numbers(&metadata)
+                                } else {
+                                   format_size(metadata.len())
+                                };
                                 
-                                writeln!(output, "{}{} {:>8} {}", file_type,display_perm(mode), size, display_name).unwrap();
+                                writeln!(output, "{}{} {} {}", file_type,display_perm(mode), size, display_name).unwrap();
                             } else {
                                 writeln!(output, "?---------        ? {}", display_name).unwrap();
                             }
@@ -140,7 +145,6 @@ pub fn classify_it(entry: &DirEntry) -> String {
 
 fn file_type(metadata: &Metadata) -> char {
     let file_type = metadata.file_type();
-    
     if file_type.is_dir() { 'd' }
     else if file_type.is_file() { '-' }
     else if file_type.is_symlink() { 'l' }
@@ -149,4 +153,30 @@ fn file_type(metadata: &Metadata) -> char {
     else if file_type.is_fifo() { 'p' }
     else if file_type.is_socket() { 's' }
     else { '?' }
+}
+
+fn get_device_numbers(metadata: &Metadata) -> String {
+    let rdev = metadata.rdev();
+    let major = (rdev >> 8) as u8;
+    let minor = rdev as u8;
+    format!("{:>3},  {:>3}", major, minor)
+}
+
+fn format_size(size: u64) -> String {
+    const UNITS: &[&str] = &["B", "K", "M", "G", "T", "P", "E"];
+    let mut size = size as f64;
+    let mut unit_index = 0;
+
+    while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_index += 1;
+    }
+
+    if unit_index == 0 {
+        format!("{:>8}", size as u64)
+    } else if size < 10.0 {
+        format!("{:>7.1}{}", size, UNITS[unit_index])
+    } else {
+        format!("{:>7.0}{}", size, UNITS[unit_index])
+    }
 }
