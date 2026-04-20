@@ -1,73 +1,52 @@
-
 # 0-shell
 
-A minimalist Unix-like shell written in Rust.  
-Designed to run core shell commands without relying on external binaries or system shells.
+A minimal Unix shell built from scratch in Rust.
 
 ## Overview
 
-0-shell implements basic Unix shell behavior including:
+0-shell implements core shell behavior without relying on any shell libraries — from raw input tokenization to process execution and I/O redirection. The architecture mirrors how a real shell works: tokenize, parse, dispatch, execute.
 
-- Navigating directories (`cd`, `pwd`)
-- Listing directory contents (`ls -l -a -F`)
-- File manipulation (`cat`, `cp`, `rm -r`, `mv`, `mkdir`)
-- Printing output (`echo`)
-- Exiting the shell (`exit`)
+## Features
 
-It demonstrates:
+- **Lexical tokenizer** — handles single quotes, double quotes, escape sequences, and whitespace splitting correctly
+- **I/O redirection** — supports `>` (overwrite), `>>` (append), and `<` (input) operators
+- **Built-in commands** — `ls`, `cd`, `pwd`, `echo`
+  - `ls` supports `-a` (all), `-l` (long format), `-F` (classify) flags
+  - `cd` tracks logical and physical working directories, supports `cd -`
+- **Prompt** — displays current working directory, updates on navigation
+- **Multi-line input** — detects unclosed quotes and continues input on next line
+- **Signal handling** — structured process and error management via `signal-hook`
 
-- Reading user input in a REPL loop
-- Parsing commands and flags
-- Handling file system operations with Rust's `std::fs`
-- Error handling and graceful shell exit (Ctrl+D)
-
-## Project Structure
+## Architecture
 
 ```
+src/
+├── main.rs
+├── lib.rs
+├── behavior/
+│   ├── shell.rs       # Shell state: cwd, prompt, dir tracking
+│   ├── tokenizer.rs   # Lexer + redirect parser
+│   └── parser.rs      # Token → Command struct
+├── core/
+│   └── redirect.rs    # I/O stream resolution (>, >>, <)
+└── commands/
+    ├── ls.rs
+    ├── cd.rs
+    ├── pwd.rs
+    └── echo.rs
+```
 
-0-shell/
-├── Cargo.toml
-└── src/
-├── main.rs         # Entry point
-├── lib.rs          # Library root
-├── error.rs        # Error types
-├── utils.rs        # Helper functions
-├── behavior/       # Core shell logic
-│   ├── mod.rs
-│   ├── shell.rs
-│   └── parser.rs
-└── commands/       # Built-in commands
-├── mod.rs
-├── cd.rs
-├── echo.rs
-├── ls.rs
-├── pwd.rs
-├── exit.rs
-├── rm.rs
-└── ... (other commands)
-
-````
-
-## Usage
-
-Run the shell:
+## Getting Started
 
 ```bash
+git clone https://github.com/D0ulo5/0-shell
+cd 0-shell
 cargo run
-````
-
-Example session:
-
-```text
-$ cd src
-$ pwd
-/home/user/0-shell/src
-$ echo "Hello, 0-shell!"
-Hello, 0-shell!
-$ ls -l
-total 0
--rw-r--r-- 1 user user  0 Sep 19 10:00 main.rs
--rw-r--r-- 1 user user  0 Sep 19 10:00 lib.rs
-...
-$ exit
 ```
+
+## Built With
+
+- [Rust](https://www.rust-lang.org/)
+- [`signal-hook`](https://docs.rs/signal-hook) — signal handling
+- [`chrono`](https://docs.rs/chrono) — timestamps in `ls -l`
+- [`users`](https://docs.rs/users) — user/group info in `ls -l`
